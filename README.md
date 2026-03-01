@@ -57,8 +57,11 @@ Add the following to your `claude_desktop_config.json`:
 | `submit_signed_swap` | Submit a manually signed transaction |
 | `auto_swap` | Build and auto-sign a swap in one step |
 | `get_holdings` | Get token holdings for a wallet |
+| `get_mcap` | Get market cap and price data for token(s) |
+| `get_flex_card` | Get flex trade card PNG URL for wallet and token |
 | `place_limit_order` | Place a limit buy or sell order |
 | `place_trailing_order` | Place a trailing buy or sell order |
+| `place_twap_order` | Place a TWAP (time-weighted) buy or sell order |
 | `list_orders` | List all active orders for a wallet |
 | `check_order` | Check the status of an order |
 | `cancel_order` | Cancel an active order |
