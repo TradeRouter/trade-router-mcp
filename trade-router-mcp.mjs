@@ -218,10 +218,10 @@ function computeParamsHash(msg) {
   }
   const hp = msg.holdings_percentage != null ? parseInt(msg.holdings_percentage) : 0;
   let bpsField;
-  if (['sell', 'buy'].includes(order_type)) {
+  if (['sell', 'buy', 'limit_twap_sell', 'limit_twap_buy'].includes(order_type)) {
     if (msg.target_bps == null) return null;
     bpsField = parseInt(msg.target_bps);
-  } else if (['trailing_sell', 'trailing_buy'].includes(order_type)) {
+  } else if (['trailing_sell', 'trailing_buy', 'trailing_twap_sell', 'trailing_twap_buy', 'limit_trailing_sell', 'limit_trailing_buy', 'limit_trailing_twap_sell', 'limit_trailing_twap_buy'].includes(order_type)) {
     if (msg.trail_bps == null) return null;
     bpsField = parseInt(msg.trail_bps);
   } else {
@@ -231,12 +231,36 @@ function computeParamsHash(msg) {
   return createHash('sha256').update(Buffer.from(s, 'utf-8')).digest('hex');
 }
 
+function getParamsHashCanonicalString(msg) {
+  const { order_id, token_address, order_type, slippage, expiry_hours, amount } = msg;
+  if (!order_id || !token_address || !order_type || slippage == null || expiry_hours == null || amount == null) return null;
+  const hp = msg.holdings_percentage != null ? parseInt(msg.holdings_percentage) : 0;
+  let bpsField;
+  if (['sell', 'buy', 'limit_twap_sell', 'limit_twap_buy'].includes(order_type)) {
+    if (msg.target_bps == null) return null;
+    bpsField = parseInt(msg.target_bps);
+  } else if (['trailing_sell', 'trailing_buy', 'trailing_twap_sell', 'trailing_twap_buy', 'limit_trailing_sell', 'limit_trailing_buy', 'limit_trailing_twap_sell', 'limit_trailing_twap_buy'].includes(order_type)) {
+    if (msg.trail_bps == null) return null;
+    bpsField = parseInt(msg.trail_bps);
+  } else return null;
+  return `${order_id}|${token_address}|${order_type}|${bpsField}|${parseInt(slippage)}|${parseInt(expiry_hours)}|${parseInt(amount)}|${hp}`;
+}
+
+// Server includes frequency|duration for TWAP-related order types in params_hash.
+const TWAP_ORDER_TYPES = ['twap_sell', 'twap_buy', 'limit_twap_sell', 'limit_twap_buy', 'trailing_twap_sell', 'trailing_twap_buy', 'limit_trailing_twap_sell', 'limit_trailing_twap_buy'];
+
 function verifyOrderCreated(msg) {
   const paramsHash = msg.params_hash;
   const sigB58     = msg.server_signature;
   if (!paramsHash || !sigB58) return null;  // server hasn't shipped commitment yet
-  const computed = computeParamsHash(msg);
-  if (!computed || computed !== paramsHash) return false;
+  const canonical = getParamsHashCanonicalString(msg);
+  if (!canonical) return false;
+  let computed = createHash('sha256').update(Buffer.from(canonical, 'utf-8')).digest('hex');
+  if (computed !== paramsHash && TWAP_ORDER_TYPES.includes(msg.order_type) && msg.frequency != null && msg.duration != null) {
+    const s = `${canonical}|${parseInt(msg.frequency)}|${parseInt(msg.duration)}`;
+    computed = createHash('sha256').update(Buffer.from(s, 'utf-8')).digest('hex');
+  }
+  if (computed !== paramsHash) return false;
   const digest = createHash('sha256').update(Buffer.from(paramsHash, 'utf-8')).digest();
   const keys   = [SERVER_PUBKEY_B58, SERVER_PUBKEY_NEXT_B58].filter(Boolean);
   for (const key of keys) {
@@ -439,7 +463,18 @@ class WsManager {
 
     else if (t === 'order_created') {
       const hasCommitment = !!(msg.params_hash && msg.server_signature);
-      msg.params_verified = hasCommitment ? verifyOrderCreated(msg) : null;
+      let verified = null;
+      if (hasCommitment) {
+        try {
+          verified = verifyOrderCreated(msg);
+        } catch (e) {
+          log('error', `order_created verification threw: ${e.message}`);
+          const first = this._firstInflight();
+          if (first) first.reject(new Error(`order_created verification error: ${e.message}`));
+          return;
+        }
+      }
+      msg.params_verified = verified;
       if (hasCommitment && !msg.params_verified) {
         const errMsg = `order_created params commitment FAILED order_id=${msg.order_id}`;
         log('error', errMsg);
