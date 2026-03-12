@@ -10,7 +10,7 @@ A [Model Context Protocol](https://modelcontextprotocol.io) server for [TradeRou
 ## Installation
 
 ```bash
-npx @re-bruce-wayne/trade-router-mcp
+npx @traderouter/trade-router-mcp
 ```
 
 ## Claude Desktop Setup
@@ -22,7 +22,7 @@ Add the following to your `claude_desktop_config.json`:
   "mcpServers": {
     "traderouter": {
       "command": "npx",
-      "args": ["-y", "@re-bruce-wayne/trade-router-mcp"],
+      "args": ["-y", "@traderouter/trade-router-mcp"],
       "env": {
         "TRADEROUTER_PRIVATE_KEY": "your_base58_private_key"
       }
