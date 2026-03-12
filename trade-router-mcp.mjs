@@ -211,55 +211,86 @@ function verifyTwapExecutionWithRotation(msg) {
   return false;
 }
 
-function computeParamsHash(msg) {
+/**
+ * Build the exact pipe-delimited preimage the server hashes (server_signing.py).
+ * - limit (sell/buy): target_bps only, 8 fields
+ * - trailing (trailing_*, limit_trailing_sell/buy): trail_bps only, 8 fields
+ * - trailing_twap_*: trail_bps + frequency + duration (10 fields)
+ * - limit_twap_*: target_bps + frequency + duration (10 fields)
+ * - limit_trailing_twap_*: target_bps|trail_bps + frequency + duration (11 fields)
+ */
+function getOrderCreatedPreimage(msg) {
   const { order_id, token_address, order_type, slippage, expiry_hours, amount } = msg;
   if (!order_id || !token_address || !order_type || slippage == null || expiry_hours == null || amount == null) {
     return null;
   }
-  const hp = msg.holdings_percentage != null ? parseInt(msg.holdings_percentage) : 0;
-  let bpsField;
-  if (['sell', 'buy', 'limit_twap_sell', 'limit_twap_buy'].includes(order_type)) {
-    if (msg.target_bps == null) return null;
-    bpsField = parseInt(msg.target_bps);
-  } else if (['trailing_sell', 'trailing_buy', 'trailing_twap_sell', 'trailing_twap_buy', 'limit_trailing_sell', 'limit_trailing_buy', 'limit_trailing_twap_sell', 'limit_trailing_twap_buy'].includes(order_type)) {
-    if (msg.trail_bps == null) return null;
-    bpsField = parseInt(msg.trail_bps);
-  } else {
-    return null;
+  const hp = msg.holdings_percentage != null ? parseInt(msg.holdings_percentage, 10) : 0;
+  const slip = parseInt(slippage, 10);
+  const exp = parseInt(expiry_hours, 10);
+  const amt = parseInt(amount, 10);
+
+  // limit_trailing_twap_* — server params_hash_limit_trailing_twap: target_bps|trail_bps|...|frequency|duration
+  if (order_type === 'limit_trailing_twap_sell' || order_type === 'limit_trailing_twap_buy') {
+    if (msg.target_bps == null || msg.trail_bps == null || msg.frequency == null || msg.duration == null) return null;
+    const targetBps = parseInt(msg.target_bps, 10);
+    const trailBps = parseInt(msg.trail_bps, 10);
+    const freq = parseInt(msg.frequency, 10);
+    const dur = parseInt(msg.duration, 10);
+    return `${order_id}|${token_address}|${order_type}|${targetBps}|${trailBps}|${slip}|${exp}|${amt}|${hp}|${freq}|${dur}`;
   }
-  const s = `${order_id}|${token_address}|${order_type}|${bpsField}|${parseInt(slippage)}|${parseInt(expiry_hours)}|${parseInt(amount)}|${hp}`;
-  return createHash('sha256').update(Buffer.from(s, 'utf-8')).digest('hex');
-}
 
-function getParamsHashCanonicalString(msg) {
-  const { order_id, token_address, order_type, slippage, expiry_hours, amount } = msg;
-  if (!order_id || !token_address || !order_type || slippage == null || expiry_hours == null || amount == null) return null;
-  const hp = msg.holdings_percentage != null ? parseInt(msg.holdings_percentage) : 0;
-  let bpsField;
-  if (['sell', 'buy', 'limit_twap_sell', 'limit_twap_buy'].includes(order_type)) {
+  // limit_twap_* / trailing_twap_* — 8-field base then |frequency|duration (server hashes one string)
+  if (order_type === 'limit_twap_sell' || order_type === 'limit_twap_buy') {
+    if (msg.target_bps == null || msg.frequency == null || msg.duration == null) return null;
+    const targetBps = parseInt(msg.target_bps, 10);
+    const freq = parseInt(msg.frequency, 10);
+    const dur = parseInt(msg.duration, 10);
+    return `${order_id}|${token_address}|${order_type}|${targetBps}|${slip}|${exp}|${amt}|${hp}|${freq}|${dur}`;
+  }
+  if (order_type === 'trailing_twap_sell' || order_type === 'trailing_twap_buy') {
+    if (msg.trail_bps == null || msg.frequency == null || msg.duration == null) return null;
+    const trailBps = parseInt(msg.trail_bps, 10);
+    const freq = parseInt(msg.frequency, 10);
+    const dur = parseInt(msg.duration, 10);
+    return `${order_id}|${token_address}|${order_type}|${trailBps}|${slip}|${exp}|${amt}|${hp}|${freq}|${dur}`;
+  }
+
+  // sell / buy — params_hash_limit
+  if (order_type === 'sell' || order_type === 'buy') {
     if (msg.target_bps == null) return null;
-    bpsField = parseInt(msg.target_bps);
-  } else if (['trailing_sell', 'trailing_buy', 'trailing_twap_sell', 'trailing_twap_buy', 'limit_trailing_sell', 'limit_trailing_buy', 'limit_trailing_twap_sell', 'limit_trailing_twap_buy'].includes(order_type)) {
+    const targetBps = parseInt(msg.target_bps, 10);
+    return `${order_id}|${token_address}|${order_type}|${targetBps}|${slip}|${exp}|${amt}|${hp}`;
+  }
+
+  // trailing_sell/buy, limit_trailing_sell/buy — params_hash_trailing (trail_bps only)
+  if (['trailing_sell', 'trailing_buy', 'limit_trailing_sell', 'limit_trailing_buy'].includes(order_type)) {
     if (msg.trail_bps == null) return null;
-    bpsField = parseInt(msg.trail_bps);
-  } else return null;
-  return `${order_id}|${token_address}|${order_type}|${bpsField}|${parseInt(slippage)}|${parseInt(expiry_hours)}|${parseInt(amount)}|${hp}`;
+    const trailBps = parseInt(msg.trail_bps, 10);
+    return `${order_id}|${token_address}|${order_type}|${trailBps}|${slip}|${exp}|${amt}|${hp}`;
+  }
+
+  return null;
 }
 
-// Server includes frequency|duration for TWAP-related order types in params_hash.
-const TWAP_ORDER_TYPES = ['twap_sell', 'twap_buy', 'limit_twap_sell', 'limit_twap_buy', 'trailing_twap_sell', 'trailing_twap_buy', 'limit_trailing_twap_sell', 'limit_trailing_twap_buy'];
+function computeParamsHash(msg) {
+  const preimage = getOrderCreatedPreimage(msg);
+  if (!preimage) return null;
+  return createHash('sha256').update(Buffer.from(preimage, 'utf-8')).digest('hex');
+}
+
+/** @deprecated use getOrderCreatedPreimage; kept for any external callers expecting 8-field base only */
+function getParamsHashCanonicalString(msg) {
+  const preimage = getOrderCreatedPreimage(msg);
+  return preimage;
+}
 
 function verifyOrderCreated(msg) {
   const paramsHash = msg.params_hash;
   const sigB58     = msg.server_signature;
   if (!paramsHash || !sigB58) return null;  // server hasn't shipped commitment yet
-  const canonical = getParamsHashCanonicalString(msg);
-  if (!canonical) return false;
-  let computed = createHash('sha256').update(Buffer.from(canonical, 'utf-8')).digest('hex');
-  if (computed !== paramsHash && TWAP_ORDER_TYPES.includes(msg.order_type) && msg.frequency != null && msg.duration != null) {
-    const s = `${canonical}|${parseInt(msg.frequency)}|${parseInt(msg.duration)}`;
-    computed = createHash('sha256').update(Buffer.from(s, 'utf-8')).digest('hex');
-  }
+  const preimage = getOrderCreatedPreimage(msg);
+  if (!preimage) return false;
+  const computed = createHash('sha256').update(Buffer.from(preimage, 'utf-8')).digest('hex');
   if (computed !== paramsHash) return false;
   const digest = createHash('sha256').update(Buffer.from(paramsHash, 'utf-8')).digest();
   const keys   = [SERVER_PUBKEY_B58, SERVER_PUBKEY_NEXT_B58].filter(Boolean);
