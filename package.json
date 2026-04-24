@@ -1,11 +1,7 @@
 {
   "name": "@traderouter/trade-router-mcp",
-  "version": "1.0.7",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/TradeRouter/trade-router-mcp.git"
-  },
-  "description": "TradeRouter.ai MCP Server — Solana swap & limit order engine",
+  "version": "1.0.8",
+  "description": "Non-custodial Solana swap & limit order engine for AI agents — MCP server for TradeRouter.ai.",
   "type": "module",
   "mcpName": "io.github.TradeRouter/trade-router-mcp",
   "main": "trade-router-mcp.mjs",
@@ -15,6 +11,40 @@
   "scripts": {
     "start": "node trade-router-mcp.mjs"
   },
+  "files": [
+    "trade-router-mcp.mjs",
+    "README.md",
+    "SECURITY.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "solana",
+    "trading",
+    "defi",
+    "ai-agents",
+    "swap",
+    "limit-orders",
+    "trailing-stop",
+    "dca",
+    "twap",
+    "mev",
+    "jito",
+    "non-custodial",
+    "traderouter"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TradeRouter/trade-router-mcp.git"
+  },
+  "homepage": "https://traderouter.ai",
+  "bugs": {
+    "url": "https://github.com/TradeRouter/trade-router-mcp/issues"
+  },
+  "author": "Trade Router",
+  "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "@solana/web3.js": "^1.98.0",
@@ -24,6 +54,5 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "license": "MIT"
+  }
 }
