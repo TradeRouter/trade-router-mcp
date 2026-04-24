@@ -52,6 +52,25 @@ const SERVER_PUBKEY_B58      = (process.env.TRADEROUTER_SERVER_PUBKEY || _HARDCO
 const SERVER_PUBKEY_NEXT_B58 = (process.env.TRADEROUTER_SERVER_PUBKEY_NEXT || '').trim() || null;
 const REQUIRE_SERVER_SIG     = (process.env.TRADEROUTER_REQUIRE_SERVER_SIGNATURE || 'true') === 'true';
 const REQUIRE_ORDER_CREATED_SIG = (process.env.TRADEROUTER_REQUIRE_ORDER_CREATED_SIGNATURE || 'true') === 'true';
+const DRY_RUN                = (process.env.TRADEROUTER_DRY_RUN || 'false').toLowerCase() === 'true';
+
+// Tool names that would submit a transaction or place/modify a server-side order.
+// When DRY_RUN is enabled, these short-circuit and return { dry_run: true, ... }
+// instead of calling the API. Read-only tools (get_*, list_orders, check_order,
+// connection_status, build_swap) always execute normally.
+const WRITE_ACTION_TOOLS = new Set([
+  'submit_signed_swap',
+  'auto_swap',
+  'place_limit_order',
+  'place_trailing_order',
+  'place_twap_order',
+  'place_limit_twap_order',
+  'place_trailing_twap_order',
+  'place_limit_trailing_order',
+  'place_limit_trailing_twap_order',
+  'cancel_order',
+  'extend_order',
+]);
 
 const BACKOFF_BASE   = 1000;
 const BACKOFF_FACTOR = 2;
@@ -219,7 +238,7 @@ function verifyTwapExecutionWithRotation(msg) {
  * - limit_twap_*: target_bps + frequency + duration (10 fields)
  * - limit_trailing_twap_*: target_bps|trail_bps + frequency + duration (11 fields)
  */
-function getOrderCreatedPreimage(msg) {
+export function getOrderCreatedPreimage(msg) {
   const { order_id, token_address, order_type, slippage, expiry_hours, amount } = msg;
   if (!order_id || !token_address || !order_type || slippage == null || expiry_hours == null || amount == null) {
     return null;
@@ -272,7 +291,7 @@ function getOrderCreatedPreimage(msg) {
   return null;
 }
 
-function computeParamsHash(msg) {
+export function computeParamsHash(msg) {
   const preimage = getOrderCreatedPreimage(msg);
   if (!preimage) return null;
   return createHash('sha256').update(Buffer.from(preimage, 'utf-8')).digest('hex');
@@ -1033,6 +1052,17 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
 });
 
 async function callTool(name, args) {
+  // DRY_RUN gate — short-circuit write actions before any network I/O.
+  // Agents/users opt in via TRADEROUTER_DRY_RUN=true; default is false (live).
+  if (DRY_RUN && WRITE_ACTION_TOOLS.has(name)) {
+    return {
+      dry_run: true,
+      tool: name,
+      args,
+      note: 'TRADEROUTER_DRY_RUN=true — no tx submitted and no order placed. Unset or set false to go live.',
+    };
+  }
+
   switch (name) {
 
     case 'get_wallet_address': {
@@ -1269,7 +1299,14 @@ async function main() {
   log('info', 'traderouter MCP server running (stdio)');
 }
 
-main().catch(e => {
-  log('error', e.message);
-  process.exit(1);
-});
+// Only start the server when this file is the entry point. When imported from
+// tests (e.g. `import { getOrderCreatedPreimage } from './trade-router-mcp.mjs'`),
+// we want the functions to be reachable without booting the stdio transport.
+import { fileURLToPath } from 'node:url';
+const __entryIsThisFile = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
+if (__entryIsThisFile) {
+  main().catch(e => {
+    log('error', e.message);
+    process.exit(1);
+  });
+}

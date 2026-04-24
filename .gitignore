@@ -1,0 +1,7 @@
+node_modules/
+*.tgz
+*.log
+.DS_Store
+# MCP Registry publisher artifacts — never commit these
+.mcpregistry_github_token
+.mcpregistry_registry_token

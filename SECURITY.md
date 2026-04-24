@@ -99,6 +99,7 @@ optional_env_vars:
   TRADEROUTER_SERVER_PUBKEY_NEXT: "Accept messages signed by this key in addition to the primary. Supports rotation without a client upgrade."
   TRADEROUTER_REQUIRE_SERVER_SIGNATURE: "Default 'true'. Set 'false' to skip fill-event verification — NOT RECOMMENDED."
   TRADEROUTER_REQUIRE_ORDER_CREATED_SIGNATURE: "Default 'true'. Set 'false' to skip order-created verification — NOT RECOMMENDED."
+  TRADEROUTER_DRY_RUN: "Default 'false'. When 'true', every write-action tool (submit_signed_swap, auto_swap, place_*_order, cancel_order, extend_order) short-circuits and returns { dry_run: true, ... } instead of calling the API. Read-only tools always execute. 1.0.9+."
 
 network_access:
   - api.traderouter.ai:443   # HTTPS for REST
@@ -139,13 +140,14 @@ A perfect tool cannot protect you from the following — these are yours:
 - **Server key rotation support** via `TRADEROUTER_SERVER_PUBKEY_NEXT` — operators can rotate without clients upgrading.
 - **Params-hash binding** — the `params_hash` fields in `order_created` include slippage, expiry, and amount. A server that tries to silently alter those for MEV/profit would break its own signature.
 - **No custom crypto.** All signing uses `@solana/web3.js` `Keypair.fromSecretKey()` + `tweetnacl`; all hashing uses Node's built-in `createHash('sha256')`.
+- **Dry-run mode** (1.0.9+) — set `TRADEROUTER_DRY_RUN=true` and every write-action tool short-circuits and returns `{ dry_run: true, tool, args, note }` without touching the network. Read-only tools (`get_*`, `build_swap`, `list_orders`, `check_order`, `connection_status`) still execute so you can explore safely.
+- **Regression tests** (1.0.9+) — `test/preimage.test.mjs` pins the exact `params_hash` preimage shape per order type (8 fields for limit/trailing, 10 for TWAP variants, 11 for `limit_trailing_twap`). Wired into CI on every push/PR across Node 18/20/22 so the specific bug caught during the 2026-04-24 audit cannot silently recur.
 
 ## What is NOT in this release
 
 Transparency about features that have been discussed but are not in the shipped code:
 
-- **Dry-run mode** — not implemented. Future release.
-- **Daily loss caps** — not implemented. Future release.
+- **Daily loss caps** — not implemented in the MCP server. If you need this, wrap the tool calls at your agent layer, or use the reference-agent pattern documented in the ClawHub skill's `SKILL.md` which implements `MAX_DAILY_LOSS_LAMPORTS` and a `KILL_SWITCH`.
 - **On-disk transaction log** — not implemented. The server is stateless by design.
 
 If you see a reference to any of these in external documentation, treat it as forward-looking and verify against the source before relying on it.

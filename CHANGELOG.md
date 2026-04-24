@@ -2,6 +2,17 @@
 
 All notable changes to `@traderouter/trade-router-mcp` are documented here.
 
+## [1.0.9] — 2026-04-24
+
+### Added
+- **`TRADEROUTER_DRY_RUN` environment variable.** When set to `true`, every write-action tool (`submit_signed_swap`, `auto_swap`, `place_limit_order`, `place_trailing_order`, `place_twap_order`, `place_limit_twap_order`, `place_trailing_twap_order`, `place_limit_trailing_order`, `place_limit_trailing_twap_order`, `cancel_order`, `extend_order`) short-circuits and returns `{ dry_run: true, tool, args, note }` instead of calling the API. Read-only tools (`get_*`, `build_swap`, `list_orders`, `check_order`, `connection_status`, etc.) always execute normally so agents can still explore safely. Defaults to `false` (live mode) for backwards compatibility. Closes the "Mode A has it, Mode B doesn't" gap that SECURITY.md called out in 1.0.8.
+- **`test/preimage.test.mjs`** — 10 regression tests pinning the exact `params_hash` preimage shape per order type. Covers the specific drift caught during the 2026-04-24 audit: TWAP/combo order preimages falling back to the 8-field limit shape would silently break signature verification for 6 of the 21 tools. Tests run against `node --test`, no external test framework.
+- **`.github/workflows/ci.yml`** — CI on every push and PR. Runs tests across Node 18/20/22, syntax-checks the `.mjs`, dry-packs the tarball, and fails the build if any `.mcpregistry_*` or `.env*` file leaks into it (belt-and-braces on top of the `files:` whitelist).
+- **`getOrderCreatedPreimage` and `computeParamsHash` are now exported** from `trade-router-mcp.mjs` so tests can exercise them directly. The main startup is guarded by a `import.meta.url === argv[1]` check so importing the module does not boot the stdio transport.
+
+### Fixed
+- None — 1.0.9 is additive only. The `.mjs` preimage code was already correct in 1.0.8; these tests pin that correctness in place.
+
 ## [1.0.8] — 2026-04-24
 
 ### Added

@@ -1,6 +1,6 @@
 {
   "name": "@traderouter/trade-router-mcp",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Non-custodial Solana swap & limit order engine for AI agents — MCP server for TradeRouter.ai.",
   "type": "module",
   "mcpName": "io.github.TradeRouter/trade-router-mcp",
@@ -9,7 +9,8 @@
     "trade-router-mcp": "./trade-router-mcp.mjs"
   },
   "scripts": {
-    "start": "node trade-router-mcp.mjs"
+    "start": "node trade-router-mcp.mjs",
+    "test": "node --test test/*.test.mjs"
   },
   "files": [
     "trade-router-mcp.mjs",

@@ -63,6 +63,7 @@ Or wire it into an MCP client (Claude Desktop, Cursor, Cline, etc.):
 | `TRADEROUTER_SERVER_PUBKEY_NEXT` | ❌ | *(unset)* | Accept messages signed by this key in addition to the primary (key rotation) |
 | `TRADEROUTER_REQUIRE_SERVER_SIGNATURE` | ❌ | `true` | Verify server signatures on `order_filled` / `twap_execution` |
 | `TRADEROUTER_REQUIRE_ORDER_CREATED_SIGNATURE` | ❌ | `true` | Verify server signatures on `order_created` |
+| `TRADEROUTER_DRY_RUN` | ❌ | `false` | When `true`, every write-action tool (`submit_signed_swap`, `auto_swap`, `place_*_order`, `cancel_order`, `extend_order`) returns `{ dry_run: true, tool, args }` instead of calling the API. Read-only tools execute normally. Added in 1.0.9. |
 
 ## Tools
 
