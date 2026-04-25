@@ -30,6 +30,18 @@ This document explains the security architecture of the Trade Router MCP server.
 - User revealing their private key via shell history, committing `.env` files to public repos, or exposing process env to unprivileged users.
 - Attacks on Solana itself (consensus, validator compromise).
 
+### What we explicitly do NOT validate (transparency)
+
+The following trust assumptions are inherent to the current architecture. We document them so users can layer their own checks if needed:
+
+| Trust assumption | What it means in practice |
+|---|---|
+| **The swap transaction returned by `POST /swap` is signed without inspecting its bytes.** | If `api.traderouter.ai` is compromised (operator, DNS hijack, BGP attack), the server could return a transaction that drains the wallet to an attacker-controlled address. The MCP would sign and submit it via `auto_swap`. The Ed25519 trust anchor only protects the *order-event* messages (`order_filled`, `order_created`, `twap_execution`), **not** the unsigned-tx response from `POST /swap`. |
+| **Mitigations available to the user** | (a) Use `TRADEROUTER_DRY_RUN=true` for testing — see what would have been submitted. (b) Use a dedicated trading wallet with limited balance. (c) Wrap `auto_swap` calls at your agent layer with a tx-decode + amount-check before submission. (d) Use `build_swap` + manual `submit_signed_swap` flow if you want to inspect each transaction before sending. |
+| **Build-swap response integrity** | The `/swap` endpoint response is HTTPS-protected (TLS) but is not Ed25519-signed by the server in the current API. Future versions may add this. |
+
+We chose this trade-off because validating arbitrary Solana transaction bytes against expected swap parameters (token mints, amounts, intermediate routes across 4 DEXes, fee structures) is non-trivial and adds significant code surface. We err on the side of transparency: documented trust, with a kill-switch (`TRADEROUTER_DRY_RUN`), rather than implicit trust hidden behind security claims.
+
 ## Data flow
 
 ```
