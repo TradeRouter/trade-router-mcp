@@ -1,6 +1,6 @@
 # @traderouter/trade-router-mcp
 
-<!-- mcp-name: io.github.TradeRouter/trade-router-mcp -->
+<!-- mcp-name: ai.traderouter/trade-router-mcp -->
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server for [TradeRouter.ai](https://traderouter.ai) — non-custodial Solana swap, limit, trailing, DCA, TWAP, and combo-order engine for AI agents.
 

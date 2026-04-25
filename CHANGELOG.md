@@ -2,6 +2,19 @@
 
 All notable changes to `@traderouter/trade-router-mcp` are documented here.
 
+## [1.0.10] — 2026-04-25
+
+### Changed
+- **`mcpName`** migrated from `io.github.TradeRouter/trade-router-mcp` to `ai.traderouter/trade-router-mcp`. The MCP Registry binds an npm package's ownership to its `mcpName` field, so this enables publishing to the cleaner domain-based namespace via the registry's **DNS-authentication** path. End users are unaffected — the install command (`npx -y @traderouter/trade-router-mcp`) and the npm package name are unchanged.
+- **README** `mcp-name:` HTML comment updated to match.
+
+### Why
+- DNS-based registry auth on `traderouter.ai` does not require GitHub OAuth device flow, eliminating per-publish friction. The `ai.traderouter/*` namespace also reads more "official" than a GitHub-org-prefixed name and matches our public domain.
+- The previous `io.github.TradeRouter/trade-router-mcp` registry entry remains live as a historical record; new releases will publish to `ai.traderouter/*` going forward.
+
+### Operational
+- Forever-no-codes setup documented in [`.secrets/dns-auth/README.md`](https://github.com/re-bruce-wayne/openclaw-skills/blob/main/trade-router/SECURITY.md) (in the parent project), driven by `scripts/mcp-publish-dns.sh`.
+
 ## [1.0.9] — 2026-04-24
 
 ### Added
