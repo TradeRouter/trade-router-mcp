@@ -1,0 +1,24 @@
+name: Feature request
+description: A new tool, env var, or behaviour you wish existed.
+title: "[feature] "
+labels: ["enhancement", "triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Concrete is better than abstract. "I'm building an agent that ..." beats "it would be nice to ..."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: New tool? New env var? New parameter on an existing tool? Sketch the shape.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: Especially: why didn't `TRADEROUTER_DRY_RUN`, manual `build_swap` + `submit_signed_swap`, or wrapping at the agent layer work?

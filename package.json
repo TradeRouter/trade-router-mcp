@@ -1,6 +1,6 @@
 {
   "name": "@traderouter/trade-router-mcp",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "Non-custodial Solana swap & limit order engine for AI agents \u2014 MCP server for TradeRouter.ai.",
   "type": "module",
   "mcpName": "ai.traderouter/trade-router-mcp",

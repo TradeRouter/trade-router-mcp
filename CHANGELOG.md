@@ -2,6 +2,17 @@
 
 All notable changes to `@traderouter/trade-router-mcp` are documented here.
 
+## [1.0.12] — 2026-04-25
+
+### Changed
+- README adds a **"Machine-readable specs"** section linking to the live `traderouter.ai/openapi.{json,yaml}` + `/llms.txt` + `/SKILL.md` + `/SECURITY.md` + `/CHANGELOG.md` URLs (now that the landing page is deployed via Cloudflare Pages auto-deploy from `TradeRouter/landing-page`).
+- README adds quick `openapi-generator-cli` snippets for TypeScript and Python SDK generation from the live YAML.
+- Security disclosure section now offers a hosted-URL alternative (`https://traderouter.ai/SECURITY.md`) for users who prefer linking to a stable URL over a relative GitHub repo path.
+
+### Why
+- Previously the README only referenced relative `./SECURITY.md` and `./LICENSE` paths, which break when the README is rendered outside the GitHub repo (e.g. inside MCP marketplaces or in npm-package metadata viewers). The hosted URLs work everywhere.
+- This is a docs-only release. Tool definitions (1.0.11), DRY_RUN behaviour (1.0.9+), and the entire 21-tool surface are unchanged. All 10 preimage regression tests still pass.
+
 ## [1.0.11] — 2026-04-25
 
 ### Changed

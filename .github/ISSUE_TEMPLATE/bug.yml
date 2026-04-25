@@ -1,0 +1,51 @@
+name: Bug report
+description: Something doesn't work the way the docs say it does.
+title: "[bug] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill out the sections below — the more concrete you are, the faster we can fix it.
+
+        ⚠️ **Security issue?** Please email `security@traderouter.ai` instead of opening a public issue. See [SECURITY.md](https://github.com/TradeRouter/trade-router-mcp/blob/main/SECURITY.md).
+  - type: input
+    id: version
+    attributes:
+      label: MCP server version
+      description: "Output of `npm view @traderouter/trade-router-mcp version` or whatever's in your config."
+      placeholder: "1.0.12"
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: MCP client
+      placeholder: "Claude Desktop / Cursor / Cline / ElizaOS / LangChain / direct stdio"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what did you get?
+      placeholder: |
+        I called `auto_swap` with these args: { wallet_address: "...", token_address: "...", action: "buy", amount: 100000000, slippage: 1500 }
+        I expected: a confirmed signature
+        I got: <error message / empty response / wrong field>
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: Relevant env vars
+      description: "TRADEROUTER_DRY_RUN, SOLANA_RPC_URL, TRADEROUTER_REQUIRE_SERVER_SIGNATURE, etc. **DO NOT paste TRADEROUTER_PRIVATE_KEY.**"
+      placeholder: |
+        TRADEROUTER_DRY_RUN=true
+        SOLANA_RPC_URL=<unset, using default>
+  - type: textarea
+    id: logs
+    attributes:
+      label: stderr output
+      description: "Anything the MCP server printed to stderr. Redact wallet addresses if you'd like."
+      render: shell

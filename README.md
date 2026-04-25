@@ -128,9 +128,30 @@ tools = await client.get_tools()
 
 Flat **1% fee on swap volume**, embedded in routing at `/protect`. No subscription, no API key, no monthly minimums. Read-only endpoints (`/holdings`, `/mcap`) are free.
 
+## Machine-readable specs (live on traderouter.ai)
+
+| URL | Format | Purpose |
+|---|---|---|
+| <https://traderouter.ai/openapi.json> | OpenAPI 3.1 (JSON) | Canonical API contract — generate SDKs in any language |
+| <https://traderouter.ai/openapi.yaml> | OpenAPI 3.1 (YAML) | Same spec, YAML format (regenerated from the JSON) |
+| <https://traderouter.ai/llms.txt> | text | LLM-readable API guide (per [llmstxt.org](https://llmstxt.org/)) |
+| <https://traderouter.ai/SKILL.md> | markdown | Anthropic Agent Skills format — full implementation guide |
+| <https://traderouter.ai/SECURITY.md> | markdown | Threat model + data-flow diagram + permissions manifest (mirrors [./SECURITY.md](./SECURITY.md) here) |
+| <https://traderouter.ai/CHANGELOG.md> | markdown | Unified changelog across the API / MCP server / Site version tracks |
+
+Quick SDK generation:
+
+```bash
+# TypeScript
+openapi-generator-cli generate -i https://traderouter.ai/openapi.yaml -g typescript-axios -o ./sdk-ts
+
+# Python
+openapi-generator-cli generate -i https://traderouter.ai/openapi.yaml -g python -o ./sdk-py
+```
+
 ## Security disclosure
 
-Email **security@traderouter.ai** or use GitHub Security Advisories on this repo. 48-hour acknowledgement. See [SECURITY.md](./SECURITY.md).
+Email **security@traderouter.ai** or use GitHub Security Advisories on this repo. 48-hour acknowledgement. See [SECURITY.md](./SECURITY.md) (or the [hosted version](https://traderouter.ai/SECURITY.md) if you'd rather link to a stable URL).
 
 ## License
 
