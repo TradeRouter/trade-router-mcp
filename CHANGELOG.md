@@ -2,6 +2,23 @@
 
 All notable changes to `@traderouter/trade-router-mcp` are documented here.
 
+## [1.0.11] — 2026-04-25
+
+### Changed
+- **All 21 tool definitions rewritten** with full Purpose Clarity / Usage Guidelines / Behavioral Transparency / Parameter Semantics. Per-parameter descriptions now include units, ranges, examples, and required-vs-optional context. The TOOLS array grew from 287 lines to 499 lines (~30 KB → ~85 KB), but the npm tarball mjs is still a single file.
+- **Per Glama TDQS scoring** ([blog](https://glama.ai/blog)): the previous v1.0.10 tool defs averaged 3.3/5 with a low of 2.4/5 on `list_orders` (server-level score = 60% mean + 40% min, so the lowest tool tanks the score). v1.0.11 lifts the floor: every tool now has explicit "WHEN TO USE / WHAT IT DOES / RETURNS / SIDE EFFECTS" structure plus full parameter descriptions. Expected score: A on quality (was B).
+- **Tool definitions grouped semantically** with section comments (Wallet/Session, Instant Swaps, Read-Only, WebSocket Lifecycle, Order Placement, Order Management) for human readers of the source.
+- **`additionalProperties: false`** added to every tool's `inputSchema` so the schema is closed (no silent acceptance of unknown fields). Pure additive change for clients.
+
+### Added
+- **`glama.json`** in the repo root for Glama listing claim. Adds the maintainers field (`re-bruce-wayne`) so the listing can be claimed via the Glama UI and gain "Author verified" status.
+- **Cross-references in tool descriptions**: `auto_swap` points at `build_swap` + `submit_signed_swap` for the manual flow, `place_*_order` tools point at `cancel_order` / `extend_order` / `list_orders` / `check_order` for management, etc. Better disambiguation for LLM tool-selection.
+- **Explicit ⚠️ TRUST callout in `auto_swap`**: re-states what `SECURITY.md` says about the build_swap response not being signed — agents reading the tool description alone now see the trust gap.
+- **TWAP slice documentation**: every TWAP-related tool description now explains slicing math (frequency × duration / interval_seconds) so agents pick sensible parameters.
+
+### Fixed
+- None — 1.0.11 is additive (no behavior change). All 10 regression tests in `test/preimage.test.mjs` still pass; CI green.
+
 ## [1.0.10] — 2026-04-25
 
 ### Changed
