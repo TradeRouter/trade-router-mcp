@@ -1,0 +1,13 @@
+{
+  "name": "trade-router",
+  "description": "Non-custodial Solana swap & limit-order MCP server for AI agents. 21 tools (swap, limit, trailing, TWAP, DCA, combo orders) across Raydium, PumpSwap, Orca, Meteora. Jito MEV-protected. Ed25519 server-message verification. Private key never leaves the agent.",
+  "version": "1.0.12",
+  "author": {
+    "name": "Trade Router",
+    "url": "https://traderouter.ai"
+  },
+  "homepage": "https://traderouter.ai",
+  "repository": "https://github.com/TradeRouter/trade-router-mcp",
+  "license": "MIT",
+  "keywords": ["solana", "trading", "defi", "swap", "limit-orders", "trailing-stop", "twap", "dca", "non-custodial", "mev", "jito", "multi-dex", "ai-agents"]
+}
