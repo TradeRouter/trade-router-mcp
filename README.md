@@ -7,6 +7,9 @@ A [Model Context Protocol](https://modelcontextprotocol.io) server for [TradeRou
 [![Security: non-custodial](https://img.shields.io/badge/Security-Non%20Custodial-green.svg)](./SECURITY.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![npm](https://img.shields.io/npm/v/@traderouter/trade-router-mcp.svg)](https://www.npmjs.com/package/@traderouter/trade-router-mcp)
+[![Awesome MCP Servers](https://cdn.rawgit.com/sindresorhus/awesome/d7305f38d29fed78fa85652e3a63e154dd8e8829/media/badge.svg)](https://github.com/punkpeye/awesome-mcp-servers#-finance--fintech)
+[![Glama MCP Server](https://glama.ai/mcp/servers/@traderouter/trade-router-mcp/badges/score.svg)](https://glama.ai/mcp/servers/@traderouter/trade-router-mcp)
+[![MCP Registry](https://img.shields.io/badge/MCP%20Registry-ai.traderouter%2Ftrade--router--mcp-blue.svg)](https://registry.modelcontextprotocol.io/v0/servers?search=trade-router)
 
 ## Is this safe?
 
