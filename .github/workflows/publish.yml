@@ -1,0 +1,90 @@
+name: Publish to npm with provenance
+
+# Publishes @traderouter/trade-router-mcp to npm with a Sigstore provenance
+# attestation when a `v*` tag is pushed (matches the existing v1.0.12 / v1.0.13
+# release tag convention).
+#
+# Provenance attaches a verifiable build attestation: anyone running
+# `npm audit signatures` or fetching the package gets cryptographic proof
+# that the tarball was built from THIS exact git commit by GitHub Actions
+# (not by a compromised dev laptop). Critical for an MCP that handles
+# private keys.
+#
+# Setup notes:
+#  1. The `id-token: write` permission below is what enables OIDC token
+#     exchange with Sigstore - no secrets needed, just the permission.
+#  2. NPM_TOKEN is a granular org access token with publish scope on
+#     @traderouter/* (set in repo secrets). Use a granular token, not a
+#     classic automation token.
+#  3. `--provenance` flag plus `publishConfig.provenance: true` in
+#     package.json activates the attestation.
+#
+# Security notes (per actions-injection guard):
+#  - All ${{ ... }} interpolations are passed via env: vars, never used
+#    directly in run: blocks. This prevents command injection through
+#    crafted tag names or workflow_dispatch input.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to publish (e.g. v1.0.14)'
+        required: true
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # required for npm provenance via Sigstore OIDC
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run tests
+        run: npm test
+
+      - name: Verify version matches tag
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          PKG_VER=$(node -p "require('./package.json').version")
+          # Prefer workflow_dispatch input, fall back to ref_name on tag push
+          TAG_RAW="${INPUT_TAG:-$REF_NAME}"
+          TAG_VER="${TAG_RAW#v}"
+          if [ "$PKG_VER" != "$TAG_VER" ]; then
+            echo "::error::package.json version ($PKG_VER) does not match tag ($TAG_VER)"
+            exit 1
+          fi
+          echo "Version matches: $PKG_VER"
+
+      - name: Publish to npm with provenance
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Verify provenance was attached
+        run: |
+          PKG_VER=$(node -p "require('./package.json').version")
+          npm view "@traderouter/trade-router-mcp@$PKG_VER" --json > view.json
+          if grep -q '"attestations"' view.json; then
+            echo "Provenance attestation present on @traderouter/trade-router-mcp@$PKG_VER"
+          else
+            echo "::warning::No attestations found on the published version. Check id-token permission and --provenance flag."
+          fi
