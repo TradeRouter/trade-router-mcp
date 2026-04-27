@@ -1064,7 +1064,9 @@ WHEN TO USE: When you want a trigger-then-distribute pattern. Example: "If BONK'
 
 WHAT IT DOES: Server waits for limit target. When crossed, sends limit_twap_triggered, then twap_order_created for the spawned TWAP, then twap_execution per slice (each with server_signature for verification).
 
-PARAMS_HASH: Server signs an 11-field commitment including target_bps, trail_bps (n/a for this combo), frequency, duration. Verified locally against the trust anchor before order is treated as accepted.`,
+RETURNS: { wallet, order_id, message: "Limit-TWAP order accepted", target, frequency, duration, expiry_hours, params_hash, server_signature }. The order_id is what you'd pass to check_order, cancel_order, or extend_order. Server returns an error event over WS if the wallet is not registered, or if both amount and holdings_percentage are missing.
+
+SIDE EFFECTS: Server-side state created — the order watches the market-cap feed continuously until target hits or expiry_hours elapses. Once limit triggers, a child TWAP order is spawned with its own order_id (delivered via twap_order_created event); cancel_order on the parent only cancels the limit phase, not the child TWAP after it spawns. params_hash signs an 11-field commitment (target_bps, trail_bps n/a, frequency, duration, etc.) — verified locally against the trust anchor before the order is treated as accepted.`,
     inputSchema: {
       type: 'object',
       required: ['wallet_address', 'token_address', 'action', 'target', 'frequency', 'duration'],
@@ -1089,7 +1091,11 @@ PARAMS_HASH: Server signs an 11-field commitment including target_bps, trail_bps
 
 WHEN TO USE: To ride a trend with a trailing stop, but exit gradually via TWAP when the trail fires (minimizing market impact on a low-liquidity exit). Example: "Sell BONK if mcap drops 15% from peak, but spread the exit over 30 min."
 
-WHAT IT DOES: Server tracks high-water (sell) or low-water (buy) mark. When reversal exceeds trail BPS, sends trailing_twap_triggered, then twap_order_created, then twap_execution per slice.`,
+WHAT IT DOES: Server tracks high-water (sell) or low-water (buy) mark. When reversal exceeds trail BPS, sends trailing_twap_triggered, then twap_order_created, then twap_execution per slice.
+
+RETURNS: { wallet, order_id, message: "Trailing-TWAP order accepted", trail, frequency, duration, expiry_hours, params_hash, server_signature }. order_id is the parent (trailing-watching) phase; the spawned TWAP gets its own child order_id at trigger time.
+
+SIDE EFFECTS: Server-side state created — the trailing-watcher runs continuously until trail fires or expiry_hours elapses. cancel_order on the parent stops the trailing phase but does NOT cancel a child TWAP that has already spawned. The 11-field params_hash includes trail BPS, frequency, duration, slippage — signed by server, verified locally.`,
     inputSchema: {
       type: 'object',
       required: ['wallet_address', 'token_address', 'action', 'trail', 'frequency', 'duration'],
@@ -1114,7 +1120,11 @@ WHAT IT DOES: Server tracks high-water (sell) or low-water (buy) mark. When reve
 
 WHEN TO USE: To enter at a specific mcap, then ride the trend with a trailing stop. Example: "Buy BONK if mcap drops to $500M, then sell with a 15% trailing stop after entry."
 
-WHAT IT DOES: Server waits for limit target. When crossed, sends limit_trailing_activated and starts trailing-stop tracking. When trail retraces enough, sends order_filled with a single unsigned tx.`,
+WHAT IT DOES: Server waits for limit target. When crossed, sends limit_trailing_activated and starts trailing-stop tracking. When trail retraces enough, sends order_filled with a single unsigned tx.
+
+RETURNS: { wallet, order_id, message: "Limit-Trailing order accepted", target, trail, expiry_hours, params_hash, server_signature }. The order_id stays the same across both phases (limit-watching → trailing-watching → filled). Use check_order to see which phase the order is currently in.
+
+SIDE EFFECTS: Server-side state created — the limit watcher runs until target hits or expiry_hours elapses. Once limit triggers, the trail tracker takes over (high-water for sell, low-water for buy) until reversal exceeds trail BPS. cancel_order works in both phases. expiry_hours covers the LIMIT phase only — once trail activates, the order has no expiry (extend_order resets the limit phase only).`,
     inputSchema: {
       type: 'object',
       required: ['wallet_address', 'token_address', 'action', 'target', 'trail'],
@@ -1138,7 +1148,11 @@ WHAT IT DOES: Server waits for limit target. When crossed, sends limit_trailing_
 
 WHEN TO USE: For the most sophisticated single-tool strategy. Example: "Buy BONK at mcap $500M, then sell with a 15% trailing stop, and when the trail fires distribute the exit over 30 minutes via TWAP."
 
-WHAT IT DOES: Server orchestrates all three phases. Sends limit_trailing_activated when trail starts, limit_trailing_twap_triggered when trail fires, twap_execution per slice. The 11-field params_hash includes target, trail, frequency, and duration — all signed by the server, verified locally.`,
+WHAT IT DOES: Server orchestrates all three phases. Sends limit_trailing_activated when trail starts, limit_trailing_twap_triggered when trail fires, twap_execution per slice. The 11-field params_hash includes target, trail, frequency, and duration — all signed by the server, verified locally.
+
+RETURNS: { wallet, order_id, message: "Limit-Trailing-TWAP order accepted", target, trail, frequency, duration, expiry_hours, params_hash, server_signature }. The parent order_id covers the limit + trailing phases; the spawned TWAP at trail-fire gets its own child order_id (delivered via twap_order_created event). check_order on the parent reports the current phase ("limit-watching", "trailing-watching", or "twap-spawned").
+
+SIDE EFFECTS: Server-side state created — the watcher runs continuously through three phases. cancel_order on the parent works during limit and trailing phases but NOT once the child TWAP has spawned (cancel that TWAP's order_id directly). expiry_hours covers the LIMIT phase only. params_hash is the strongest commitment in the suite (11 fields including target, trail, frequency, duration, slippage) — verified locally before order acceptance.`,
     inputSchema: {
       type: 'object',
       required: ['wallet_address', 'token_address', 'action', 'target', 'trail', 'frequency', 'duration'],
@@ -1189,7 +1203,9 @@ WHEN TO USE: To check whether a known order has triggered, expired, or been canc
 
 WHAT IT DOES: Sends { action: "check_order", order_id } over the WebSocket. Server returns { type: "order_status", order_id, status, ... }.
 
-RETURNS: { wallet, order_id, status: "active"|"triggered"|"filled"|"cancelled"|"expired", ... }. If the order doesn't exist (already expired or cancelled), the server returns an error.`,
+RETURNS: { wallet, order_id, status: "active"|"triggered"|"filled"|"cancelled"|"expired", ... }. If the order doesn't exist (already expired or cancelled), the server returns an error.
+
+SIDE EFFECTS: None — pure read. Does not affect the order state or trigger any server-side processing.`,
     inputSchema: {
       type: 'object',
       required: ['wallet_address', 'order_id'],
@@ -1229,7 +1245,9 @@ WHEN TO USE: When you want to keep a pending order alive longer than the origina
 
 WHAT IT DOES: Sends { action: "extend_order", order_id, expiry_hours } over the WebSocket. Server updates the order's expires_at and confirms with { type: "order_extended", order_id }.
 
-RETURNS: { wallet, order_id, expiry_hours, status: "extended" }. Cannot extend TWAP orders (they have no separate expiry — they live exactly duration seconds).`,
+RETURNS: { wallet, order_id, expiry_hours, status: "extended" }. Cannot extend TWAP orders (they have no separate expiry — they live exactly duration seconds).
+
+SIDE EFFECTS: Mutates server-side order state (expires_at field). The order continues from the same phase it was in — extending does not reset the trail high-water mark or restart the limit watcher. Idempotent if called with the same expiry_hours that already applies.`,
     inputSchema: {
       type: 'object',
       required: ['wallet_address', 'order_id', 'expiry_hours'],

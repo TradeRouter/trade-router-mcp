@@ -2,6 +2,16 @@
 
 All notable changes to `@traderouter/trade-router-mcp` are documented here.
 
+## [1.0.13] — 2026-04-27
+
+### Fixed
+- **Glama TDQS audit caught 6 tools that v1.0.11's first pass missed**: 4 combo orders (`place_limit_twap_order`, `place_trailing_twap_order`, `place_limit_trailing_order`, `place_limit_trailing_twap_order`) were missing `RETURNS` and `SIDE EFFECTS` sections; `check_order` and `extend_order` were missing `SIDE EFFECTS`. The 4 combo tools were the lowest-TDQS rows pulling the server's quality score down (60% mean + 40% min formula). Quality grade should move B → A on next Glama re-fetch.
+
+### Why
+- v1.0.11 added the WHEN/WHAT/RETURNS/SIDE EFFECTS structure to most tools but the combo-order family (the 4 "place_*_*" multi-phase orchestrators) only got WHEN + WHAT. The `60% mean + 40% min` quality formula means the worst single tool dominates — fixing those 4 lifts the floor.
+- Each combo-order's RETURNS now describes the response shape (order_id, params_hash, server_signature) and how parent vs child order_ids work in spawned-TWAP cases.
+- Each combo-order's SIDE EFFECTS now documents the server-side state lifecycle, cancel-order semantics across phases, and which phase expiry_hours covers.
+
 ## [1.0.12] — 2026-04-25
 
 ### Changed
